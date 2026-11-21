@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0a1020"><title>KEY BYPASS V3</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,Arial,sans-serif}
+*{box-sizing:border-box}body{margin:0;background:#080d18;color:#f4f7ff;padding:20px}
+main{max-width:620px;margin:30px auto}.hero{text-align:center;margin-bottom:22px}
+h1{color:#71adff;margin:0;font-size:30px}.muted{color:#93a4bf;font-size:13px}
+.card{background:#121c30;border:1px solid #2a3b59;border-radius:18px;padding:20px;margin:14px 0}
+label{display:block;font-weight:650;margin-bottom:10px}
+input{width:100%;min-height:52px;border:1px solid #3b4e70;border-radius:11px;background:#091326;color:white;padding:12px;font-size:16px}
+button{border:0;border-radius:10px;padding:13px 15px;font-weight:700;cursor:pointer}
+.primary{width:100%;background:#397ff0;color:white;margin-top:12px}
+.secondary{background:#293d5d;color:#fff}.row{display:flex;gap:9px;margin-top:9px}.row button{flex:1}
+#result{display:none;white-space:pre-wrap;overflow-wrap:anywhere;background:#091426;border:1px solid #2c4265;border-radius:12px;padding:14px;margin-top:14px;line-height:1.6}
+a{color:#85baff}.history-item{padding:10px;background:#091426;border-radius:9px;margin-top:8px;overflow-wrap:anywhere;font-size:13px}
+.small{font-size:12px;color:#92a3bd;line-height:1.6}
+</style>
+</head>
+<body><main>
+<header class="hero"><h1>⚡ KEY BYPASS V3</h1><div class="muted">MULTI-LINK • AUTHORIZED API WORKFLOW</div></header>
+<section class="card">
+<label for="url">Dán link cần kiểm tra</label>
+<input id="url" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://...">
+<div class="row"><button class="secondary" id="paste">📋 DÁN LINK</button><button class="secondary" id="clear">XÓA</button></div>
+<button class="primary" id="inspect">PHÂN TÍCH LINK</button>
+<div id="result" role="status" aria-live="polite"></div>
+</section>
+<section class="card">
+<strong>📜 Lịch sử trên thiết bị</strong><div id="history" class="small" style="margin-top:10px">Chưa có lịch sử.</div>
+<button class="secondary" id="clearHistory" style="margin-top:12px">XÓA LỊCH SỬ</button>
+</section>
+<p class="small">Công cụ nhận diện nhà cung cấp và kết nối API chính thức khi có tích hợp hợp lệ. Công cụ không bỏ qua CAPTCHA, đăng nhập, quảng cáo bắt buộc hoặc cơ chế bảo vệ của bên thứ ba.</p>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+function show(text){$("result").style.display="block";$("result").textContent=text;}
+$("paste").addEventListener("click",async()=>{
+ try{
+  if(!navigator.clipboard?.readText) throw new Error();
+  const value=await navigator.clipboard.readText();
+  if(!value.trim()) throw new Error();
+  $("url").value=value.trim();show("Đã dán link. Nhấn PHÂN TÍCH LINK để tiếp tục.");
+ }catch{
+  $("url").focus();show("iPhone chưa cấp quyền đọc clipboard. Hãy nhấn giữ ô nhập link rồi chọn Dán.");
+ }
+});
+$("clear").onclick=()=>{$("url").value="";$("result").style.display="none";$("url").focus();};
+$("inspect").onclick=async()=>{
+ const url=$("url").value.trim();
+ if(!url){show("Bạn chưa nhập link.");$("url").focus();return;}
+ show("Đang kiểm tra…");
+ try{
+  const response=await fetch("/api/inspect",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url})});
+  const data=await response.json();
+  if(!response.ok) throw new Error(data.error||"Không thể xử lý link.");
+  let message=`Nhà cung cấp: ${data.providerName}\nTrạng thái: ${data.status||"manual"}\n${data.message||""}\n\nURL: ${data.url}`;
+  show(message);
+  save({url:data.url,provider:data.providerName,status:data.status||"manual"});
+ }catch(e){show("Lỗi: "+e.message);}
+};
+$("url").addEventListener("keydown",e=>{if(e.key==="Enter")$("inspect").click();});
+function save(item){
+ let list=JSON.parse(localStorage.getItem("kbv3_history")||"[]");
+ if(list[0]?.url!==item.url)list.unshift({...item,time:new Date().toLocaleString("vi-VN")});
+ localStorage.setItem("kbv3_history",JSON.stringify(list.slice(0,15)));render();
+}
+function render(){
+ const list=JSON.parse(localStorage.getItem("kbv3_history")||"[]"),box=$("history");box.replaceChildren();
+ if(!list.length){box.textContent="Chưa có lịch sử.";return;}
+ list.forEach(item=>{
+  const div=document.createElement("div");div.className="history-item";
+  const title=document.createElement("div");title.textContent=`${item.provider} • ${item.time}`;
+  const url=document.createElement("div");url.textContent=item.url;
+  const btn=document.createElement("button");btn.className="secondary";btn.textContent="DÙNG LẠI";
+  btn.onclick=()=>{$("url").value=item.url;window.scrollTo({top:0,behavior:"smooth"});};
+  div.append(title,url,btn);box.append(div);
+ });
+}
+$("clearHistory").onclick=()=>{localStorage.removeItem("kbv3_history");render();};
+render();
+</script></body></html>
